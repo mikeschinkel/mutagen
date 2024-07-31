@@ -52,7 +52,10 @@ message Configuration {
     // StageMode specifies the file staging mode.
     StageMode stageMode = 16;
 
-    // Fields 18-20 are reserved for future synchronization configuration
+    // UseSudo specifies to use sudo when running the agent
+    bool useSudo = 18;
+
+    // Fields 19-20 are reserved for future synchronization configuration
     // parameters.
 
 

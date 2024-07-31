@@ -50,6 +50,8 @@ type Configuration struct {
 		// default interval should be used.
 		PollingInterval uint32 `json:"pollingInterval,omitempty" yaml:"pollingInterval" mapstructure:"pollingInterval"`
 	} `json:"watch" yaml:"watch" mapstructure:"watch"`
+	// Should the agent use sudo?
+	UseSudo bool `json:"useSudo,omitempty"  yaml:"useSudo" mapstructure:"useSudo"`
 	// Permissions contains parameters related to permission handling.
 	Permissions struct {
 		// Mode specifies the permissions mode.
@@ -97,6 +99,9 @@ func (c *Configuration) loadFromInternal(configuration *synchronization.Configur
 	// Propagate symbolic link configuration.
 	c.Symlink.Mode = configuration.SymbolicLinkMode
 
+	// Propagate useSudo configuration.
+	c.UseSudo = configuration.UseSudo
+
 	// Propagate watch configuration.
 	c.Watch.Mode = configuration.WatchMode
 	c.Watch.PollingInterval = configuration.WatchPollingInterval
@@ -126,6 +131,7 @@ func (c *Configuration) ToInternal() *synchronization.Configuration {
 		StageMode:              c.StageMode,
 		SymbolicLinkMode:       c.Symlink.Mode,
 		WatchMode:              c.Watch.Mode,
+		UseSudo:                c.UseSudo,
 		WatchPollingInterval:   c.Watch.PollingInterval,
 		Ignores:                c.Ignore.Paths,
 		IgnoreVCSMode:          c.Ignore.VCS,

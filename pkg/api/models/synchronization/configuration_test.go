@@ -57,6 +57,7 @@ var expectedConfiguration = &synchronization.Configuration{
 	StageMode:              synchronization.StageMode_StageModeNeighboring,
 	SymbolicLinkMode:       core.SymbolicLinkMode_SymbolicLinkModePortable,
 	WatchMode:              synchronization.WatchMode_WatchModeForcePoll,
+	UseSudo:                false,
 	WatchPollingInterval:   5,
 	Ignores: []string{
 		"ignore/this/**",
@@ -121,6 +122,9 @@ func TestLoadConfiguration(t *testing.T) {
 	}
 	if configuration.WatchMode != expectedConfiguration.WatchMode {
 		t.Error("watch mode mismatch:", configuration.WatchMode, "!=", expectedConfiguration.WatchMode)
+	}
+	if configuration.UseSudo != expectedConfiguration.UseSudo {
+		t.Error("use sudo mismatch:", configuration.UseSudo, "!=", expectedConfiguration.UseSudo)
 	}
 	if configuration.WatchPollingInterval != expectedConfiguration.WatchPollingInterval {
 		t.Error("watch polling interval mismatch:", configuration.WatchPollingInterval, "!=", expectedConfiguration.WatchPollingInterval)

@@ -28,12 +28,16 @@ const (
 	agentErrorInMemoryCutoff = 32 * 1024
 )
 
+type UseSudoGetter interface {
+	GetUseSudo() bool
+}
+
 // connect connects to an agent-based endpoint using the specified transport,
 // connection mode, and prompter. It accepts a hint as to whether or not the
 // remote environment is cmd.exe-based and returns hints as to whether or not
 // installation should be attempted and whether or not the remote environment is
 // cmd.exe-based.
-func connect(logger *logging.Logger, transport Transport, mode, prompter string, cmdExe bool) (io.ReadWriteCloser, bool, bool, error) {
+func connect(logger *logging.Logger, transport Transport, mode, prompter string, cmdExe bool, cfg Configurer) (io.ReadWriteCloser, bool, bool, error) {
 	// Compute the agent invocation command, relative to the user's home
 	// directory on the remote. Unless we have reason to assume that this is a
 	// cmd.exe environment, we construct a path using forward slashes. This will
@@ -65,8 +69,15 @@ func connect(logger *logging.Logger, transport Transport, mode, prompter string,
 		BaseName,
 	}, pathSeparator)
 
+	// Add sudo if config says to add sudo
+	var sudo string
+	sudoUser, ok := cfg.(UseSudoGetter)
+	if ok && sudoUser.GetUseSudo() {
+		sudo = "sudo "
+	}
+
 	// Compute the command to invoke.
-	command := fmt.Sprintf("%s %s --%s=%s", agentInvocationPath, mode, FlagLogLevel, logger.Level())
+	command := fmt.Sprintf("%s%s %s --%s=%s", sudo, agentInvocationPath, mode, FlagLogLevel, logger.Level())
 
 	// Set up (but do not start) an agent process.
 	message := "Connecting to agent (POSIX)..."
@@ -176,9 +187,11 @@ func connect(logger *logging.Logger, transport Transport, mode, prompter string,
 	return stream, false, false, nil
 }
 
+type Configurer interface{}
+
 // Dial connects to an agent-based endpoint using the specified transport,
 // connection mode, and prompter.
-func Dial(logger *logging.Logger, transport Transport, mode, prompter string) (io.ReadWriteCloser, error) {
+func Dial(logger *logging.Logger, transport Transport, mode, prompter string, cfg Configurer) (io.ReadWriteCloser, error) {
 	// Validate that the mode is sane.
 	if !(mode == CommandSynchronizer || mode == CommandForwarder) {
 		return nil, errors.New("invalid agent dial mode")
@@ -187,11 +200,11 @@ func Dial(logger *logging.Logger, transport Transport, mode, prompter string) (i
 	// Attempt a connection. If this fails but we detect a Windows cmd.exe
 	// environment in the process, then re-attempt a connection under the
 	// cmd.exe assumption.
-	stream, tryInstall, cmdExe, err := connect(logger, transport, mode, prompter, false)
+	stream, tryInstall, cmdExe, err := connect(logger, transport, mode, prompter, false, cfg)
 	if err == nil {
 		return stream, nil
 	} else if cmdExe {
-		stream, tryInstall, cmdExe, err = connect(logger, transport, mode, prompter, true)
+		stream, tryInstall, cmdExe, err = connect(logger, transport, mode, prompter, true, cfg)
 		if err == nil {
 			return stream, nil
 		}
@@ -209,7 +222,7 @@ func Dial(logger *logging.Logger, transport Transport, mode, prompter string) (i
 	}
 
 	// Re-attempt connectivity.
-	stream, _, _, err = connect(logger, transport, mode, prompter, cmdExe)
+	stream, _, _, err = connect(logger, transport, mode, prompter, cmdExe, cfg)
 	if err != nil {
 		return nil, err
 	}

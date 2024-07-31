@@ -214,6 +214,7 @@ func (c *Configuration) Equal(other *Configuration) bool {
 		c.StageMode == other.StageMode &&
 		c.SymbolicLinkMode == other.SymbolicLinkMode &&
 		c.WatchMode == other.WatchMode &&
+		c.UseSudo == other.UseSudo &&
 		c.WatchPollingInterval == other.WatchPollingInterval &&
 		comparison.StringSlicesEqual(c.DefaultIgnores, other.DefaultIgnores) &&
 		comparison.StringSlicesEqual(c.Ignores, other.Ignores) &&
@@ -293,6 +294,13 @@ func MergeConfigurations(lower, higher *Configuration) *Configuration {
 		result.WatchMode = higher.WatchMode
 	} else {
 		result.WatchMode = lower.WatchMode
+	}
+
+	// Merge the use sudo.
+	if higher.UseSudo != false {
+		result.UseSudo = higher.UseSudo
+	} else {
+		result.UseSudo = lower.UseSudo
 	}
 
 	// Merge the polling interval.
