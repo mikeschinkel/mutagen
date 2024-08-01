@@ -172,7 +172,7 @@ func connect(logger *logging.Logger, transport Transport, mode, prompter string,
 		// error output from the handshake failure.
 		tryInstall, cmdExe, classifyErr := transport.ClassifyError(agentProcess.ProcessState, errorOutput)
 		if classifyErr != nil {
-			return nil, false, false, err
+			return nil, true, false, err
 		}
 		return nil, tryInstall, cmdExe, err
 	}
