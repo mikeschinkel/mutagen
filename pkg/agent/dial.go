@@ -31,6 +31,7 @@ const (
 // Configurator interface allows passing either Forward or Sync config
 type Configurator interface{}
 
+// UseSudoGetter allows calling GetUseSudo() on config that supports it
 type UseSudoGetter interface {
 	GetUseSudo() bool
 }
