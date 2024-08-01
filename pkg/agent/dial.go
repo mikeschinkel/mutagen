@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -26,6 +27,10 @@ const (
 	// agentErrorInMemoryCutoff is the maximum number of bytes that Mutagen will
 	// capture in memory from the standard error output of an agent process.
 	agentErrorInMemoryCutoff = 32 * 1024
+
+	// notExistsFlag will be returns to signal the agent does not exist
+	// and so should be installed
+	notInstalledFlag string = "Agent not installed"
 )
 
 // Configurator interface allows passing either Forward or Sync config
@@ -58,26 +63,23 @@ func connect(logger *logging.Logger, transport Transport, mode, prompter string,
 	// environment or cmd.exe), we can leave the "exe" suffix off the target
 	// name. Fortunately this allows us to also avoid having to try the
 	// combination of forward slashes + ".exe" for Windows POSIX environments.
-	pathSeparator := "/"
-	if cmdExe {
-		pathSeparator = "\\"
-	}
+
 	dataDirectoryName := filesystem.MutagenDataDirectoryName
 	if mutagen.DevelopmentModeEnabled {
 		dataDirectoryName = filesystem.MutagenDataDirectoryDevelopmentName
 	}
-	agentInvocationPath := strings.Join([]string{
+	agentInvocationPath := filepath.Join(
 		dataDirectoryName,
 		filesystem.MutagenAgentsDirectoryName,
 		mutagen.Version,
 		BaseName,
-	}, pathSeparator)
+	)
 
 	// Add sudo if config says to add sudo
 	var sudo string
 	sudoUser, ok := cfg.(UseSudoGetter)
 	if ok && sudoUser.GetUseSudo() {
-		sudo = "sudo "
+		sudo = fmt.Sprintf("test ! -f '%s' && printf '%s' >&2 || sudo ", agentInvocationPath, notInstalledFlag)
 	}
 
 	// Compute the command to invoke.
@@ -149,6 +151,12 @@ func connect(logger *logging.Logger, transport Transport, mode, prompter string,
 		// whitespace (primarily trailing newlines), and neutralize any control
 		// characters.
 		errorOutput := errorBuffer.String()
+
+		if errorOutput == notInstalledFlag {
+			// true=TryInstall
+			return nil, true, true, errors.New("agent not installed")
+		}
+
 		if !utf8.ValidString(errorOutput) {
 			return nil, false, false, errors.New("remote did not return UTF-8 output")
 		}
