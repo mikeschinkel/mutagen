@@ -97,6 +97,7 @@ func ExecutableForPlatform(goos, goarch, outputPath string) (string, error) {
 		} else {
 			bundle = file
 			defer bundle.Close()
+			break
 		}
 	}
 	if bundle == nil {
